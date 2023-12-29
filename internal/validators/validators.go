@@ -126,6 +126,3 @@ func IsKeyValid(keyInBytes *[]byte) (err error) {
 
 	return err
 }
-
-// Make sure about renaming while decryption
-// The user can forget to provided the flag (-n). The files will then be decrypted without

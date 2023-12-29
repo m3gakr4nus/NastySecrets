@@ -32,7 +32,7 @@ func gatherFiles(path string) (int, error) {
 		return 0, err
 	}
 
-	fmt.Printf("[+] Found %v\n", len(FoundFiles))
+	fmt.Printf("[+] Found %d\n", len(FoundFiles))
 
 	return len(FoundFiles), nil
 }

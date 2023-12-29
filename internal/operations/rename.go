@@ -11,7 +11,7 @@ import (
 
 // This function will rename all the files to temp with a counter (temp1, temp2, temp3 and so on)
 func encryptNames(aesgcm *cipher.AEAD, foundFilesAmount int, renamedMap map[string]string) (err error) {
-	var renamedCounter int = 0
+	var renamedCounter int
 
 	// Beging encrypting names
 	for _, v := range FoundFiles {
@@ -52,7 +52,7 @@ func encryptNames(aesgcm *cipher.AEAD, foundFilesAmount int, renamedMap map[stri
 }
 
 func decryptNames(aesgcm *cipher.AEAD, foundFilesAmount int, renamedMap map[string]string) (err error) {
-	var renamedCounter int = 0
+	var renamedCounter int
 
 	// Beging decrypting names
 	for _, v := range FoundFiles {

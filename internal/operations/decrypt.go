@@ -10,17 +10,17 @@ import (
 	"github.com/Mega-Kranus/NastySecrets/internal/faults"
 )
 
-func Decrypt(path, configFile string) (err error) {
+func Decrypt(path, configPath string) (err error) {
 	var configData ConfigFile
 
 	// Validate if config file is provided
-	if !(len(configFile) > 0) {
+	if !(len(configPath) > 0) {
 		err = faults.GetError(consts.EConfigFileNotFound)
 		return err
 	}
 
 	// Read config files data
-	readConfig(configFile, &configData)
+	readConfig(configPath, &configData)
 
 	// Retrieve key
 	key, err := b64ToBytes(configData.Key)

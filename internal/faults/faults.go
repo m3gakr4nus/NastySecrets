@@ -9,7 +9,7 @@ import (
 // Error codes and their coresponding error messages
 var errorsAndMessages = map[uint]string{
 	consts.EEncryptionAndDecryption:  "Error: Encryption and Decryption can not be used together!",
-	consts.ENoEncryptionOrDecryption: "Error: Missing operation flag (use -e or -a)",
+	consts.ENoEncryptionOrDecryption: "Error: Missing operation flag (use -e or -d)",
 	consts.EConfigFileNotFound:       "Error: Unable to find the config file (-k {path_to_file})",
 	consts.ECantOpenFile:             "Error: Could not open the config file!",
 	consts.EInvalidKeyLength:         "Error: The provided key is invalid! Key length must be 16, 24 or 32 Bytes.",
