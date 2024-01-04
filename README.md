@@ -1,3 +1,7 @@
+<a href="https://github.com/Mega-Kranus/NastySecrets/releases/latest">![GitHub release (with filter)](https://img.shields.io/github/v/release/mega-kranus/NastySecrets?style=flat-square&color=%23018c08)</a>
+<a href="https://github.com/Mega-Kranus/NastySecrets/blob/main/go.mod">![GitHub go.mod Go version (subdirectory of monorepo)](https://img.shields.io/github/go-mod/go-version/mega-kranus/NastySecrets?style=flat-square)</a>
+<a href="https://github.com/Mega-Kranus/NastySecrets/">![GitHub repo size](https://img.shields.io/github/repo-size/mega-kranus/NastySecrets?style=flat-square)</a>
+<a href="https://github.com/Mega-Kranus/NastySecrets/blob/main/LICENSE">![GitHub License](https://img.shields.io/github/license/mega-kranus/NastySecrets?style=flat-square)</a>
 
 # NastySecrets
 
@@ -69,21 +73,22 @@ go build -o NastySecrets ./cmd/NastySecrets/main.go
 ```bash
 ./NastySecrets -h
 ```
+
+## Authors
+
+[@Mega-Kranus](https://www.github.com/Mega-Kranus)
+
+
 ## Documentation
 
 [Overview](https://github.com/Mega-Kranus/NastySecrets/tree/main/docs)
 
 
-## Authors
+## License
 
-- [@Mega-Kranus](https://www.github.com/Mega-Kranus)
+[GLP V 3.0](https://github.com/Mega-Kranus/NastySecrets/blob/main/LICENSE)
 
 
 ## Feedback
 
 If you have any feedback, please reach out to me at Mega-Kranus@proton.me
-
-
-## License
-
-[GLP V 3.0](https://github.com/Mega-Kranus/NastySecrets/blob/main/LICENSE)
