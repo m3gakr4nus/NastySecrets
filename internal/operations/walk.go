@@ -25,7 +25,7 @@ func visit(path string, fileInfo os.FileInfo, err error) error {
 
 // This function will walk the root directory
 func gatherFiles(path string) (int, error) {
-	fmt.Printf("[+] Gathering files...\n")
+	fmt.Printf("[*] Gathering files...\n")
 
 	err := filepath.Walk(path, visit)
 	if err != nil {

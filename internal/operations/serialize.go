@@ -67,7 +67,7 @@ func bytesTob64(bytesValue []byte) (b64Value string) {
 
 // This function will export all the data required for future decryption
 func writeConfig(output string, key []byte, doRename bool, renamedMap map[string]string) (err error) {
-	fmt.Println("[+] Writing to config...")
+	fmt.Println("[*] Writing to config...")
 	// Initialize a 'configFile' object
 	var dataToBeWritten ConfigFile
 
@@ -99,7 +99,7 @@ func writeConfig(output string, key []byte, doRename bool, renamedMap map[string
 
 // This function will import all the data required for decryption
 func readConfig(configPath string, configData *ConfigFile) (err error) {
-	fmt.Println("[+] Reading config...")
+	fmt.Println("[*] Reading config...")
 
 	// Read JSON data
 	jsonData, err := os.ReadFile(configPath)

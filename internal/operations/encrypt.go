@@ -6,6 +6,7 @@ import (
 	"crypto/rand"
 	"fmt"
 	"os"
+	"sync"
 
 	"github.com/Mega-Kranus/NastySecrets/internal/consts"
 	"github.com/Mega-Kranus/NastySecrets/internal/faults"
@@ -22,7 +23,7 @@ func generateNewKey(key []byte) (err error) {
 	return nil
 }
 
-// This function encrypts all the files within the root directory recursively
+// This function encrypts all files within the provided directory recursively and concurrently
 func Encrypt(path, keypath string, doRename bool) (err error) {
 
 	// Validate the output path
@@ -75,31 +76,36 @@ func Encrypt(path, keypath string, doRename bool) (err error) {
 		return err
 	}
 
-	// Begin encryption
-	for _, v := range FoundFiles {
-		// Create a new random IV
-		iv := make([]byte, aesgcm.NonceSize())
-		if _, err = rand.Read(iv); err != nil {
-			return err
+	// Initialize a wait group
+	var wg sync.WaitGroup
+
+	/*
+		Using a pointer to retrieve errors if they occure instead of channels
+		Channel make the the program run extremely slow (7x slower)
+		Not sure if I'm doing something wrong but for now, i'm using a pointer
+	*/
+	var pError error
+
+	for encryptedFilesAmount < foundFilesAmount {
+		// Decide how many file to encrypt at a time
+		// This helps avoid creating extra go routines if there are less than 8 files left
+		atATime := 8
+		if encryptedFilesAmount+atATime > foundFilesAmount {
+			atATime = foundFilesAmount - encryptedFilesAmount
 		}
 
-		// Read the file's data
-		plainText, err := os.ReadFile(v)
-		if err != nil {
-			return err
+		wg.Add(atATime)
+		for ; atATime > 0; atATime-- {
+			go encryptConcurrent(&aesgcm, &wg, FoundFiles[encryptedFilesAmount], &pError)
+
+			encryptedFilesAmount++
 		}
+		wg.Wait()
 
-		// Encrypt the plain text and put the IV and the cipher text in a new slice
-		ivAndCipherText := append(iv, aesgcm.Seal(nil, iv, plainText, nil)...)
-
-		// Write the encrypted data to the file
-		// Permission: -rw-r--r-- (Only if file doesn't exists and a new file must be created)
-		err = os.WriteFile(v, ivAndCipherText, 0644)
-		if err != nil {
-			return err
+		// See if at least one of the go routines had a problem, if so stop encrypting further
+		if pError != nil {
+			return pError
 		}
-
-		encryptedFilesAmount++
 
 		fmt.Printf("\r[+] Encrypted [%d/%d]", encryptedFilesAmount, foundFilesAmount)
 	}
@@ -110,10 +116,10 @@ func Encrypt(path, keypath string, doRename bool) (err error) {
 	var renamedMap = make(map[string]string)
 
 	if doRename {
-		// rename files
+		// Rename files
 		err = encryptNames(&aesgcm, foundFilesAmount, renamedMap)
 		if err != nil {
-			return nil
+			return err
 		}
 	}
 
@@ -123,4 +129,34 @@ func Encrypt(path, keypath string, doRename bool) (err error) {
 	}
 
 	return nil
+}
+
+// This function will encrypt a file and remove the go routine from its wait group
+func encryptConcurrent(aesgcm *cipher.AEAD, wg *sync.WaitGroup, filePath string, pError *error) {
+	defer wg.Done() // remvoe from wait group
+
+	// Create a new random IV
+	iv := make([]byte, (*aesgcm).NonceSize())
+	if _, err := rand.Read(iv); err != nil {
+		*pError = err
+		return
+	}
+
+	// Read the file's data
+	plainText, err := os.ReadFile(filePath)
+	if err != nil {
+		*pError = err
+		return
+	}
+
+	// Encrypt the plain text and put the IV and the cipher text in a new slice
+	ivAndCipherText := append(iv, (*aesgcm).Seal(nil, iv, plainText, nil)...)
+
+	// Write the encrypted data to the file
+	// Permission: -rw-r--r-- (Only if file doesn't exists and a new file must be created)
+	err = os.WriteFile(filePath, ivAndCipherText, 0644)
+	if err != nil {
+		*pError = err
+		return
+	}
 }
