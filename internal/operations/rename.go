@@ -14,7 +14,7 @@ func encryptNames(aesgcm *cipher.AEAD, foundFilesAmount int, renamedMap map[stri
 	var renamedCounter int
 
 	// Beging encrypting names
-	for _, v := range FoundFiles {
+	for _, v := range foundFiles {
 		renamedCounter++
 
 		// Get the file's basename
@@ -46,6 +46,7 @@ func encryptNames(aesgcm *cipher.AEAD, foundFilesAmount int, renamedMap map[stri
 		fmt.Printf("\r[+] Renamed [%d/%d]", renamedCounter, foundFilesAmount)
 	}
 
+	// Output formatting purposes
 	fmt.Println()
 
 	return nil
@@ -55,7 +56,7 @@ func decryptNames(aesgcm *cipher.AEAD, foundFilesAmount int, renamedMap map[stri
 	var renamedCounter int
 
 	// Beging decrypting names
-	for _, v := range FoundFiles {
+	for _, v := range foundFiles {
 		renamedCounter++
 
 		// Get the file's basename
@@ -99,9 +100,9 @@ func decryptNames(aesgcm *cipher.AEAD, foundFilesAmount int, renamedMap map[stri
 		}
 
 		fmt.Printf("\r[+] Renamed [%d/%d]", renamedCounter, foundFilesAmount)
-
 	}
 
+	// Output formatting purposes
 	fmt.Println()
 
 	return nil

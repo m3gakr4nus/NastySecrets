@@ -11,8 +11,8 @@ import (
 	"github.com/Mega-Kranus/NastySecrets/internal/faults"
 )
 
-// This function decrypts all files within the provided directory recursively and concurrently
-func Decrypt(path, configPath string) (err error) {
+// This function prepares for the decryption process
+func InitiateDecryption(path, configPath string) (err error) {
 	var configData ConfigFile
 
 	// Validate if config file is provided
@@ -31,30 +31,52 @@ func Decrypt(path, configPath string) (err error) {
 	}
 
 	// Get a list of all files recursively
-	foundFilesAmount, err := gatherFiles(path)
+	filesAmount, err := gatherFiles(path)
 	if err != nil {
 		return err
 	}
 
 	// Return an error if no files are in the directory
-	if foundFilesAmount == 0 {
+	if filesAmount == 0 {
 		err = faults.GetError(consts.ENoFilesFound)
 		return err
 	}
 
-	// Decrypted files counter
+	// Execute the decryption process
+	aesgcm, err := decrypt(key, foundFiles, filesAmount)
+	if err != nil {
+		return err
+	}
+
+	// Rename files back if necessary
+	if configData.DoRename {
+		err = decryptNames(aesgcm, filesAmount, configData.RenamedFiles)
+		if err != nil {
+			return err
+		}
+	}
+
+	return nil
+}
+
+// This function decrypts all files within the provided directory recursively and concurrently
+func decrypt(key []byte, files []string, filesAmount int) (*cipher.AEAD, error) {
+	/*
+		Decrypted files counter
+		Used for going over the "files" slice
+	*/
 	var decryptedFilesAmount int
 
 	// Initialize the block cipher
 	block, err := aes.NewCipher(key)
 	if err != nil {
-		return err
+		return nil, err
 	}
 
 	// Initialize AES GCM
 	aesgcm, err := cipher.NewGCM(block)
 	if err != nil {
-		return err
+		return nil, err
 	}
 
 	// Initialize a wait group
@@ -62,52 +84,45 @@ func Decrypt(path, configPath string) (err error) {
 
 	/*
 		Using a pointer to retrieve errors if they occure instead of channels
-		Channel make the the program run extremely slow (7x slower)
-		Not sure if I'm doing something wrong but for now, i'm using a pointer
+		Channels make the program run extremely slow (7x slower)
+		Not sure if I'm doing something wrong but for now, I'm using a pointer
 	*/
 	var pError error
 
 	// Beging decryption
-	for decryptedFilesAmount < foundFilesAmount {
+	for decryptedFilesAmount < filesAmount {
+		// Decide how many files to decrypt at a time
+		// This helps avoid creating extra go routines if there are less than 8 files left
 		atATime := 8
-		if decryptedFilesAmount+atATime > foundFilesAmount {
-			atATime = foundFilesAmount - decryptedFilesAmount
+		if decryptedFilesAmount+atATime > filesAmount {
+			atATime = filesAmount - decryptedFilesAmount
 		}
 
 		wg.Add(atATime)
 		for ; atATime > 0; atATime-- {
-			go decryptConcurrent(&aesgcm, &wg, FoundFiles[decryptedFilesAmount], &pError)
+			go decryptConcurrent(&aesgcm, &wg, files[decryptedFilesAmount], &pError)
 
 			decryptedFilesAmount++
 		}
 		wg.Wait()
 
-		if pError != nil {
-			return pError
-		}
+		fmt.Printf("\r[+] Decrypted [%d/%d]", decryptedFilesAmount, filesAmount)
 
-		fmt.Printf("\r[+] Decrypted [%d/%d]", decryptedFilesAmount, foundFilesAmount)
+		if pError != nil {
+			return nil, pError
+		}
 	}
 
 	// Used for output formatting purposes
 	fmt.Println()
-
-	// Rename files back if necessary
-	if configData.DoRename {
-		err = decryptNames(&aesgcm, foundFilesAmount, configData.RenamedFiles)
-		if err != nil {
-			return err
-		}
-	}
-
 	fmt.Println("[+] Completed")
 
-	return nil
+	return &aesgcm, nil
 }
 
 // This function will decrypt a file and remove the go routine from its wait group
 func decryptConcurrent(aesgcm *cipher.AEAD, wg *sync.WaitGroup, filePath string, pError *error) {
-	defer wg.Done()
+	defer wg.Done() // Remove from wait group
 
 	// Read encrypted file's data
 	cipherText, err := os.ReadFile(filePath)
@@ -134,4 +149,31 @@ func decryptConcurrent(aesgcm *cipher.AEAD, wg *sync.WaitGroup, filePath string,
 		*pError = err
 		return
 	}
+}
+
+/*
+This function decrypts the files that just got encrypted back
+It gets executed if an error happens while encrypting a file
+This helps to avoid further encryption and data loss.
+Once an error is detected, it is unsafe to continue
+User must resolve the issue and try again
+*/
+func emergencyDecrypt(key []byte) (err error) {
+	fmt.Println()
+	fmt.Println("[!] An error occured during encryption!")
+
+	// The amount of file that were just encrypted (package level variable: "encryptedFiles")
+	filesAmount := len(encryptedFiles)
+
+	// If any files were encrypted, decrypt them back
+	if filesAmount > 0 {
+		fmt.Println("[!] Decrypting files back as it is unsafe to continue")
+
+		_, err = decrypt(key, encryptedFiles, filesAmount)
+		if err != nil {
+			return err
+		}
+	}
+
+	return nil
 }

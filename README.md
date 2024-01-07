@@ -22,27 +22,27 @@ NastySecrets, developed in GO, is a security/privacy tool. It encrypts files and
 
 Help menu
 ```bash
-./NastySecrets -h
+NastySecrets -h
 ```
 
 Encryption without renaming files
 ```bash
-./NastySecrets -e -p /folder/to/encrypt -o /config/output/path
+NastySecrets -e -p /folder/to/encrypt -o /config/output/path
 ```
 
 Encryption with renaming files
 ```bash
-./NastySecrets -e -n -p /folder/to/encrypt
+NastySecrets -e -n -p /folder/to/encrypt
 ```
 
 Encryption and re-using an old key
 ```bash
-./NastySecrets -e -n -p folder/to/encrypt -k /config/file/path
+NastySecrets -e -n -p folder/to/encrypt -k /config/file/path
 ```
 
 Decryption
 ```bash
-./NastySecrets -d -k config/file/path -p /folder/to/decrypt
+NastySecrets -d -k config/file/path -p /folder/to/decrypt
 ```
 
 
@@ -55,23 +55,26 @@ Clone the repository
 git clone https://github.com/Mega-Kranus/NastySecrets.git
 ```
 
-Either use the binary provided
-```bash
-cd NastySecrets/bin
-```
-```bash
-./NastySecrets -h
-```
-
-Or build it yourself (recommended)
+If you only want to build
 ```bash
 cd NastySecrets
 ```
 ```bash
-go build -o NastySecrets ./cmd/NastySecrets/main.go
+make build
 ```
 ```bash
-./NastySecrets -h
+bin/NastySecrets -h
+```
+
+If you want to build and put the binary in "$HOME/.local/bin" (_run from anywhere_)
+```bash
+cd NastySecrets
+```
+```bash
+make all
+```
+```bash
+NastySecrets -h
 ```
 
 ## Authors

@@ -4,6 +4,7 @@ import (
 	"crypto/aes"
 	"crypto/cipher"
 	"crypto/rand"
+	"errors"
 	"fmt"
 	"os"
 	"sync"
@@ -12,6 +13,13 @@ import (
 	"github.com/Mega-Kranus/NastySecrets/internal/faults"
 	"github.com/Mega-Kranus/NastySecrets/internal/validators"
 )
+
+/*
+Contains the paths of encrypted files
+Currently used for emergency decryption if anything goes wrong
+Package level variable
+*/
+var encryptedFiles []string
 
 // This function generates a brand new 32 Bytes key
 func generateNewKey(key []byte) (err error) {
@@ -23,9 +31,8 @@ func generateNewKey(key []byte) (err error) {
 	return nil
 }
 
-// This function encrypts all files within the provided directory recursively and concurrently
-func Encrypt(path, keypath string, doRename bool) (err error) {
-
+// This function prepares for the encryption process
+func InitiateEncryption(path, keypath string, doRename bool) (err error) {
 	// Validate the output path
 	configOutput, err := validators.ValidateOutputPath()
 	if err != nil {
@@ -50,79 +57,24 @@ func Encrypt(path, keypath string, doRename bool) (err error) {
 	}
 
 	// Get a list of all files recursively
-	foundFilesAmount, err := gatherFiles(path)
+	filesAmount, err := gatherFiles(path)
 	if err != nil {
 		return err
 	}
 
 	// Return an error if no files are in the directory
-	if foundFilesAmount == 0 {
+	if filesAmount == 0 {
 		err = faults.GetError(consts.ENoFilesFound)
 		return err
 	}
 
-	// Encrypted files counter
-	var encryptedFilesAmount int
-
-	// Initialize the block cipher
-	block, err := aes.NewCipher(key)
+	// Execute the encryption process
+	renamedMap, err := encrypt(key, foundFiles, filesAmount, doRename, configOutput)
 	if err != nil {
 		return err
 	}
 
-	// Initialize AES GCM
-	aesgcm, err := cipher.NewGCM(block)
-	if err != nil {
-		return err
-	}
-
-	// Initialize a wait group
-	var wg sync.WaitGroup
-
-	/*
-		Using a pointer to retrieve errors if they occure instead of channels
-		Channel make the the program run extremely slow (7x slower)
-		Not sure if I'm doing something wrong but for now, i'm using a pointer
-	*/
-	var pError error
-
-	for encryptedFilesAmount < foundFilesAmount {
-		// Decide how many file to encrypt at a time
-		// This helps avoid creating extra go routines if there are less than 8 files left
-		atATime := 8
-		if encryptedFilesAmount+atATime > foundFilesAmount {
-			atATime = foundFilesAmount - encryptedFilesAmount
-		}
-
-		wg.Add(atATime)
-		for ; atATime > 0; atATime-- {
-			go encryptConcurrent(&aesgcm, &wg, FoundFiles[encryptedFilesAmount], &pError)
-
-			encryptedFilesAmount++
-		}
-		wg.Wait()
-
-		// See if at least one of the go routines had a problem, if so stop encrypting further
-		if pError != nil {
-			return pError
-		}
-
-		fmt.Printf("\r[+] Encrypted [%d/%d]", encryptedFilesAmount, foundFilesAmount)
-	}
-
-	// Used for output formatting purposes
-	fmt.Println()
-
-	var renamedMap = make(map[string]string)
-
-	if doRename {
-		// Rename files
-		err = encryptNames(&aesgcm, foundFilesAmount, renamedMap)
-		if err != nil {
-			return err
-		}
-	}
-
+	// Write the data to the config file for future decryption
 	err = writeConfig(configOutput, key, doRename, renamedMap)
 	if err != nil {
 		return err
@@ -131,9 +83,85 @@ func Encrypt(path, keypath string, doRename bool) (err error) {
 	return nil
 }
 
+// This function encrypts all files within the provided directory recursively and concurrently
+func encrypt(key []byte, files []string, filesAmount int, doRename bool, configOutput string) (renamedMap map[string]string, err error) {
+	// Initializing a counter variable for going over the "files" slice
+	var filesIterator int
+
+	// Initialize the block cipher
+	block, err := aes.NewCipher(key)
+	if err != nil {
+		return nil, err
+	}
+
+	// Initialize AES GCM
+	aesgcm, err := cipher.NewGCM(block)
+	if err != nil {
+		return nil, err
+	}
+
+	// Initialize a wait group
+	var wg sync.WaitGroup
+
+	/*
+		Using a pointer to retrieve errors if they occure instead of channels
+		Channels make the program run extremely slow (7x slower)
+		Not sure if I'm doing something wrong but for now, I'm using a pointer
+	*/
+	var pError error
+
+	for filesIterator < filesAmount {
+		// Decide how many files to encrypt at a time
+		// This helps avoid creating extra go routines if there are less than 8 files left
+		atATime := 8
+		if filesIterator+atATime > filesAmount {
+			atATime = filesAmount - filesIterator
+		}
+
+		wg.Add(atATime)
+		for ; atATime > 0; atATime-- {
+			go encryptConcurrent(&aesgcm, &wg, files[filesIterator], &pError)
+
+			filesIterator++
+		}
+		wg.Wait()
+
+		fmt.Printf("\r[+] Encrypted [%d/%d]", len(encryptedFiles), filesAmount)
+
+		// See if at least one of the go routines had a problem
+		// If so stop encrypting further and decrypt all encrypted files back
+		if pError != nil {
+			err = emergencyDecrypt(key)
+			if err != nil {
+				// Join both errors and return them back
+				pError = errors.Join(pError, err)
+			}
+
+			return nil, pError
+		}
+	}
+
+	// Used for output formatting purposes
+	fmt.Println()
+
+	// This map will contain the renamed file name and the encrypted original name
+	// example: temp123: {encryptedname.txt}
+	renamedMap = make(map[string]string)
+
+	if doRename {
+		// Rename files
+		err = encryptNames(&aesgcm, filesAmount, renamedMap)
+		if err != nil {
+			return nil, err
+		}
+	}
+
+	return renamedMap, nil
+}
+
 // This function will encrypt a file and remove the go routine from its wait group
 func encryptConcurrent(aesgcm *cipher.AEAD, wg *sync.WaitGroup, filePath string, pError *error) {
-	defer wg.Done() // remvoe from wait group
+	defer wg.Done() // Remove from wait group
 
 	// Create a new random IV
 	iv := make([]byte, (*aesgcm).NonceSize())
@@ -159,4 +187,7 @@ func encryptConcurrent(aesgcm *cipher.AEAD, wg *sync.WaitGroup, filePath string,
 		*pError = err
 		return
 	}
+
+	// Add the path to the encrypted files slice
+	encryptedFiles = append(encryptedFiles, filePath)
 }

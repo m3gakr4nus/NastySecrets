@@ -6,8 +6,11 @@ import (
 	"path/filepath"
 )
 
-// Found files will be stored here
-var FoundFiles []string
+/*
+All found file paths will be stored here after walking the directory
+Package level variable
+*/
+var foundFiles []string
 
 // This function will add each file to the slice
 func visit(path string, fileInfo os.FileInfo, err error) error {
@@ -16,14 +19,14 @@ func visit(path string, fileInfo os.FileInfo, err error) error {
 	}
 
 	if !fileInfo.IsDir() {
-		FoundFiles = append(FoundFiles, path)
+		foundFiles = append(foundFiles, path)
 		return nil
 	}
 
 	return nil
 }
 
-// This function will walk the root directory
+// This function will walk the provided directory
 func gatherFiles(path string) (int, error) {
 	fmt.Printf("[*] Gathering files...\n")
 
@@ -32,7 +35,7 @@ func gatherFiles(path string) (int, error) {
 		return 0, err
 	}
 
-	fmt.Printf("[+] Found %d\n", len(FoundFiles))
+	fmt.Printf("[+] Found %d\n", len(foundFiles))
 
-	return len(FoundFiles), nil
+	return len(foundFiles), nil
 }

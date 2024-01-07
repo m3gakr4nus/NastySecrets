@@ -27,13 +27,13 @@ func main() {
 	switch operation {
 	case consts.Encryption:
 		// Beging encryption
-		err = operations.Encrypt(flags.FlagPath, flags.FlagConfig, flags.FlagRename)
+		err = operations.InitiateEncryption(flags.FlagPath, flags.FlagConfig, flags.FlagRename)
 		if err != nil {
 			operations.ExitOnError(&err)
 		}
 	case consts.Decryption:
 		// Beging decryption
-		err = operations.Decrypt(flags.FlagPath, flags.FlagConfig)
+		err = operations.InitiateDecryption(flags.FlagPath, flags.FlagConfig)
 		if err != nil {
 			operations.ExitOnError(&err)
 		}
