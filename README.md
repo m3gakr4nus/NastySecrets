@@ -7,45 +7,12 @@
 
 NastySecrets, developed in GO, is a security/privacy tool. It encrypts files and can optionally rename them for added privacy. The tool automatically generates a configuration file with the encryption key and encrypted file names for easy future decryption.
 
-
 ## Features
 
-- Simple
-- Small
-- Secure
-- Swift
-
-
-
-
-## Usage/Examples
-
-Help menu
-```bash
-NastySecrets -h
-```
-
-Encryption without renaming files
-```bash
-NastySecrets -e -p /folder/to/encrypt -o /config/output/path
-```
-
-Encryption with renaming files
-```bash
-NastySecrets -e -n -p /folder/to/encrypt
-```
-
-Encryption and re-using an old key
-```bash
-NastySecrets -e -n -p folder/to/encrypt -k /config/file/path
-```
-
-Decryption
-```bash
-NastySecrets -d -k config/file/path -p /folder/to/decrypt
-```
-
-
+- Encrypt and decrypt files swiftly
+- Rename files for added privacy and protection
+- Encrypt/decrypt upto 25 files simultaneously
+- Simple to use and very straight forward
 
 ## Installation
 
@@ -63,7 +30,7 @@ cd NastySecrets
 make build
 ```
 ```bash
-bin/NastySecrets -h
+bin/nastysecrets -h
 ```
 
 If you want to build and put the binary in "$HOME/.local/bin" (_run from anywhere_)
@@ -74,23 +41,62 @@ cd NastySecrets
 make all
 ```
 ```bash
-NastySecrets -h
+nastysecrets -h
+```
+## Removal
+
+In order to uninstall NastySecrets you can use the make file
+```bash
+cd NastySecrets
+```
+
+```bash
+make uninstall
+```
+
+## Usage/Examples
+
+Use man page after installation for detailed information
+```bash
+man nastysecrets
+```
+
+Help menu
+```bash
+nastysecrets -h
+```
+
+Encryption without renaming files
+```bash
+nastysecrets -e -p /folder/to/encrypt -o /config/output/path
+```
+
+Encryption with renaming files
+```bash
+nastysecrets -e -n -p /folder/to/encrypt
+```
+
+Encryption and re-using an old key
+```bash
+nastysecrets -e -n -p folder/to/encrypt -c /config/file/path
+```
+
+Decryption
+```bash
+nastysecrets -d -c config/file/path -p /folder/to/decrypt
 ```
 
 ## Authors
 
 [@Mega-Kranus](https://www.github.com/Mega-Kranus)
 
-
 ## Documentation
 
 [Overview](https://github.com/Mega-Kranus/NastySecrets/tree/main/docs)
 
-
 ## License
 
 [GLP V 3.0](https://github.com/Mega-Kranus/NastySecrets/blob/main/LICENSE)
-
 
 ## Feedback
 

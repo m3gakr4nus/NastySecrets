@@ -52,22 +52,36 @@ func retrieveKey(path string) (key []byte, err error) {
 	return keyInBytes, nil
 }
 
-func b64ToBytes(b64Value string) (bytesValue []byte, err error) {
-	bytesValue, err = base64.StdEncoding.DecodeString(b64Value)
+// This function only writes the key to the output path
+func writeKey(output string, key []byte) (err error) {
+	fmt.Println("[*] Writing key to config before encrypting...")
+
+	// Initialize a 'configFile' object
+	var dataToBeWritten ConfigFile
+
+	// Assign the key to the struct object
+	dataToBeWritten.Key = bytesTob64(key)
+
+	// Serialize the data into JSON format
+	jsonData, err := json.Marshal(dataToBeWritten)
 	if err != nil {
-		return nil, err
+		return err
 	}
 
-	return bytesValue, nil
-}
+	// Write the JSON data to the output path
+	// Permission: -rw-r--r--
+	err = os.WriteFile(output, jsonData, 0644)
+	if err != nil {
+		return err
+	}
 
-func bytesTob64(bytesValue []byte) (b64Value string) {
-	return base64.StdEncoding.EncodeToString(bytesValue)
+	return nil
 }
 
 // This function will export all the data required for future decryption
 func writeConfig(output string, key []byte, doRename bool, renamedMap map[string]string) (err error) {
-	fmt.Println("[*] Writing to config...")
+	fmt.Println("[*] Writing data to config...")
+
 	// Initialize a 'configFile' object
 	var dataToBeWritten ConfigFile
 
@@ -114,4 +128,19 @@ func readConfig(configPath string, configData *ConfigFile) (err error) {
 	}
 
 	return nil
+}
+
+// This function encodes bytes values to base64
+func b64ToBytes(b64Value string) (bytesValue []byte, err error) {
+	bytesValue, err = base64.StdEncoding.DecodeString(b64Value)
+	if err != nil {
+		return nil, err
+	}
+
+	return bytesValue, nil
+}
+
+// This function decodes base64 to bytes
+func bytesTob64(bytesValue []byte) (b64Value string) {
+	return base64.StdEncoding.EncodeToString(bytesValue)
 }

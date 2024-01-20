@@ -10,7 +10,7 @@ import (
 var errorsAndMessages = map[uint]string{
 	consts.EEncryptionAndDecryption:  "Error: Encryption and Decryption can not be used together!",
 	consts.ENoEncryptionOrDecryption: "Error: Missing operation flag (use -e or -d)",
-	consts.EConfigFileNotFound:       "Error: Unable to find the config file (-k {path_to_file})",
+	consts.EConfigFileNotFound:       "Error: Unable to find the config file (-c {path_to_file})",
 	consts.ECantOpenFile:             "Error: Could not open the config file!",
 	consts.EInvalidKeyLength:         "Error: The provided key is invalid! Key length must be 16, 24 or 32 Bytes.",
 	consts.ENoPathProvided:           "Error: Missing path (use -p {path_to_folder})",
@@ -18,6 +18,10 @@ var errorsAndMessages = map[uint]string{
 	consts.EPathIsFile:               "Error: The provided path is a file. Need a directory.",
 	consts.ENoFilesFound:             "Error: The path provided does not contain any files.",
 	consts.EOutputPathInvalid:        "Error: The output path provided is invalid!",
+	consts.EThreadsAmountLessThanOne: "Error: The threads amount must be 1 or more",
+	consts.EThreadsAmountUnsafe:      "Error: The thredas amount can not exceed 25.",
+	consts.EVersionFlagNotAlone:      "Error: The -v flag must be provided alone!",
+	consts.ENoFlagProvided:           "Error: No arguments were provided. Use nastysecrets -h for help.",
 }
 
 // Returns the error message as an error

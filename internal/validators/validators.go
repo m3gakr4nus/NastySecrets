@@ -1,6 +1,7 @@
 package validators
 
 import (
+	"flag"
 	"os"
 	"path/filepath"
 
@@ -8,6 +9,23 @@ import (
 	"github.com/Mega-Kranus/NastySecrets/internal/faults"
 	"github.com/Mega-Kranus/NastySecrets/internal/flags"
 )
+
+// Validate if all flags that are needed by all operations are correct
+func ValidateGlobalFlags() (err error) {
+	// Check if a path is provided and is valid
+	err = ValidatePath()
+	if err != nil {
+		return err
+	}
+
+	// Check if the threads amount is more than 0
+	err = ValidateThreadsAmount()
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
 
 // Check if the path provided exists and is valid
 func ValidatePath() (err error) {
@@ -40,19 +58,26 @@ func ValidatePath() (err error) {
 
 // This function validates the output path provided for the config file
 func ValidateOutputPath() (outputPath string, err error) {
-	// TODO: Check user permissions as well
-	if len(flags.FlagOutput) > 2 {
+	/*
+		TODO: 	Add posibility for users to export config file in a
+				1 character long file name
+				currently if (-o 'o') output will be --> ./nasty
+				output file name gets ignore if it's less than 2 chars
+	*/
+	if flags.FlagOutput != "./" {
 		pathInfo, err := os.Stat(flags.FlagOutput)
 		if os.IsNotExist(err) {
-			// If provided path doesn't exist
+			// If provided path doesn't exist check parent directory's content
 			_, err := os.Stat(filepath.Dir(flags.FlagOutput))
 			if err != nil {
+				// If also the parent directory doesn't exist
 				return "", faults.GetError(consts.EOutputPathInvalid)
 			}
 
 			// Path provided contains a to-be-create file
 			return flags.FlagOutput, nil
 		} else if err != nil {
+			// This typically handles permission errors and other
 			return "", err
 		}
 
@@ -72,9 +97,23 @@ func ValidateOutputPath() (outputPath string, err error) {
 	return outputPath, nil
 }
 
-// Identify wether to encrypt or decrypt
+// Identify if an action flag has been provided (-e or -d)
+// If so what is it (encryption or decryption)
+// If not provided, return an error
 func IdentifyOperation() (operation uint, err error) {
 	switch {
+	case flag.NFlag() < 1:
+		// If no flags are provided (invalid)
+		operation = 0
+		err = faults.GetError(consts.ENoFlagProvided)
+	case flags.FlagVersion && flag.NFlag() <= 1:
+		// If only -v is provided (valid)
+		operation = consts.ShowVersion
+		err = nil
+	case flags.FlagVersion && flag.NFlag() > 1:
+		// If the -v flag is provided with other flags (invalid)
+		operation = 0
+		err = faults.GetError(consts.EVersionFlagNotAlone)
 	case flags.FlagEncrypt && !flags.FlagDecrypt:
 		// If only encryption flag is set (valid)
 		operation = consts.Encryption
@@ -125,4 +164,16 @@ func IsKeyValid(keyInBytes *[]byte) (err error) {
 	err = faults.GetError(consts.EInvalidKeyLength)
 
 	return err
+}
+
+// Check if the threads amount is between 0 and 26 (1-25)
+func ValidateThreadsAmount() (err error) {
+	switch {
+	case flags.FlagThreads < 1:
+		return faults.GetError(consts.EThreadsAmountLessThanOne)
+	case flags.FlagThreads > 25:
+		return faults.GetError(consts.EThreadsAmountUnsafe)
+	default:
+		return nil
+	}
 }

@@ -32,7 +32,7 @@ func generateNewKey(key []byte) (err error) {
 }
 
 // This function prepares for the encryption process
-func InitiateEncryption(path, keypath string, doRename bool) (err error) {
+func InitiateEncryption(path, configPathKey string, doRename bool, threadsAmount int) (err error) {
 	// Validate the output path
 	configOutput, err := validators.ValidateOutputPath()
 	if err != nil {
@@ -40,11 +40,11 @@ func InitiateEncryption(path, keypath string, doRename bool) (err error) {
 	}
 
 	// Initialize key variable
-	var key = make([]byte, 32)
+	key := make([]byte, 32)
 
 	// Check if a key is provided
-	if len(keypath) > 0 {
-		key, err = retrieveKey(keypath)
+	if len(configPathKey) > 0 {
+		key, err = retrieveKey(configPathKey)
 		if err != nil {
 			return err
 		}
@@ -68,13 +68,19 @@ func InitiateEncryption(path, keypath string, doRename bool) (err error) {
 		return err
 	}
 
-	// Execute the encryption process
-	renamedMap, err := encrypt(key, foundFiles, filesAmount, doRename, configOutput)
+	// Write the key to the config file before encryption
+	err = writeKey(configOutput, key)
 	if err != nil {
 		return err
 	}
 
-	// Write the data to the config file for future decryption
+	// Execute the encryption process
+	renamedMap, err := encrypt(key, foundFiles, filesAmount, threadsAmount, doRename, configOutput)
+	if err != nil {
+		return err
+	}
+
+	// Overwrite the config file with the key and the rest of the data
 	err = writeConfig(configOutput, key, doRename, renamedMap)
 	if err != nil {
 		return err
@@ -84,7 +90,7 @@ func InitiateEncryption(path, keypath string, doRename bool) (err error) {
 }
 
 // This function encrypts all files within the provided directory recursively and concurrently
-func encrypt(key []byte, files []string, filesAmount int, doRename bool, configOutput string) (renamedMap map[string]string, err error) {
+func encrypt(key []byte, files []string, filesAmount, threadsAmount int, doRename bool, configOutput string) (renamedMap map[string]string, err error) {
 	// Initializing a counter variable for going over the "files" slice
 	var filesIterator int
 
@@ -113,8 +119,8 @@ func encrypt(key []byte, files []string, filesAmount int, doRename bool, configO
 	for filesIterator < filesAmount {
 		// Decide how many files to encrypt at a time
 		// This helps avoid creating extra go routines if there are less than 8 files left
-		atATime := 8
-		if filesIterator+atATime > filesAmount {
+		atATime := threadsAmount
+		if filesIterator+threadsAmount > filesAmount {
 			atATime = filesAmount - filesIterator
 		}
 
@@ -126,12 +132,12 @@ func encrypt(key []byte, files []string, filesAmount int, doRename bool, configO
 		}
 		wg.Wait()
 
-		fmt.Printf("\r[+] Encrypted [%d/%d]", len(encryptedFiles), filesAmount)
+		fmt.Printf("\r[+] Encrypted [%d/%d]", filesIterator, filesAmount)
 
 		// See if at least one of the go routines had a problem
 		// If so stop encrypting further and decrypt all encrypted files back
 		if pError != nil {
-			err = emergencyDecrypt(key)
+			err = emergencyDecrypt(key, threadsAmount)
 			if err != nil {
 				// Join both errors and return them back
 				pError = errors.Join(pError, err)
@@ -161,7 +167,7 @@ func encrypt(key []byte, files []string, filesAmount int, doRename bool, configO
 
 // This function will encrypt a file and remove the go routine from its wait group
 func encryptConcurrent(aesgcm *cipher.AEAD, wg *sync.WaitGroup, filePath string, pError *error) {
-	defer wg.Done() // Remove from wait group
+	defer (*wg).Done() // Remove from wait group
 
 	// Create a new random IV
 	iv := make([]byte, (*aesgcm).NonceSize())
