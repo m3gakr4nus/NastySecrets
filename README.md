@@ -88,7 +88,7 @@ nastysecrets -d -c config/file/path -p /folder/to/decrypt
 
 ## Authors
 
-[@Mega-Kranus](https://www.github.com/Mega-Kranus)
+[@m3gakr4nus](https://www.github.com/m3gakr4nus)
 
 ## Documentation
 
